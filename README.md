@@ -500,13 +500,6 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 - **Hardhat** for excellent development tooling
 - **React & Vite** for modern frontend capabilities
 
-## 📞 Contact
-
-- **Team**: Morpheus Protocol Developers
-- **Email**: contact@morpheusprotocol.com
-- **Twitter**: [@MorpheusProtocol](https://twitter.com/MorpheusProtocol)
-- **Discord**: [Join our community](https://discord.gg/morpheus)
-
 ---
 
 <div align="center">
