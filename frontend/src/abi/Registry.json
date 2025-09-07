@@ -1,0 +1,5 @@
+[
+  {"inputs":[{"internalType":"address","name":"pool","type":"address"}],"name":"getPool","outputs":[{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"address","name":"parent","type":"address"},{"internalType":"uint32","name":"generation","type":"uint32"},{"components":[{"internalType":"uint16","name":"feeBps","type":"uint16"},{"internalType":"uint16","name":"slippageGuardBps","type":"uint16"},{"internalType":"uint16","name":"cooldownBlocks","type":"uint16"},{"internalType":"bool","name":"mevProtection","type":"bool"}],"internalType":"struct Types.Traits","name":"traits","type":"tuple"}],"internalType":"struct Types.PoolDescriptor","name":"","type":"tuple"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"allPools","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"parent","type":"address"}],"name":"getChildren","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"}
+]

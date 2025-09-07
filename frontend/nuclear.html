@@ -1,0 +1,222 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Morpheus Nuclear Single-File</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <style>
+      body { font-family: Inter, system-ui, Arial; padding: 16px; max-width: 1100px; margin: 0 auto; }
+      .row { display: flex; gap: 8px; align-items: center; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+      code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+      button { padding: 6px 10px; }
+      input { padding: 6px 8px; width: 100%; }
+    </style>
+  </head>
+  <body>
+    <h2>Morpheus Nuclear (CDN-only)</h2>
+    <div class="row">
+      <button id="btnConnect">Connect</button>
+      <input id="inpRegistry" placeholder="Registry address" />
+      <input id="inpFactory" placeholder="Factory address" />
+      <input id="inpMorpheus" placeholder="MorpheusFactory address" />
+      <button id="btnLoad">Load Pools</button>
+    </div>
+
+    <div class="grid">
+      <div>
+        <h3>All Pools</h3>
+        <ul id="lstPools"></ul>
+        <h4>Lineage Tree</h4>
+        <svg id="tree" width="100%" height="420" style="border:1px solid #eee;border-radius:8px;background:#fafafa"></svg>
+      </div>
+      <div>
+        <h3>Selected Pool</h3>
+        <div id="sel">Pick a pool</div>
+        <div style="margin-top:8px"><b>Add Liquidity</b>
+          <div class="row">
+            <input id="amt0" placeholder="amount0 (18d)" />
+            <input id="amt1" placeholder="amount1 (18d)" />
+            <button id="btnAdd">Add</button>
+          </div>
+        </div>
+        <div style="margin-top:8px"><b>Report Fitness</b>
+          <div class="row">
+            <input id="fit_gas" placeholder="gas (0-10000)" />
+            <input id="fit_profit" placeholder="profit (0-10000)" />
+            <input id="fit_user" placeholder="user (0-10000)" />
+            <button id="btnFit">Report</button>
+          </div>
+        </div>
+        <div style="margin-top:8px"><b>GA</b>
+          <div class="row">
+            <button id="btnSpawn">Spawn Child</button>
+            <button id="btnGA">GA Evolve</button>
+          </div>
+        </div>
+        <div style="margin-top:8px"><b>Cross-chain</b>
+          <div class="row">
+            <input id="target_chain" placeholder="target chainId (84532)" />
+            <button id="btnDNA">Download DNA</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const RegistryABI = [{"inputs":[],"name":"allPools","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"pool","type":"address"}],"name":"getChildren","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"pool","type":"address"}],"name":"getPool","outputs":[{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"address","name":"parent","type":"address"},{"internalType":"uint8","name":"generation","type":"uint8"},{"components":[{"internalType":"uint16","name":"feeBps","type":"uint16"},{"internalType":"uint16","name":"slippageGuardBps","type":"uint16"},{"internalType":"uint16","name":"cooldownBlocks","type":"uint16"},{"internalType":"bool","name":"mevProtection","type":"bool"}],"internalType":"struct Types.Traits","name":"traits","type":"tuple"}],"internalType":"struct Types.PoolDescriptor","name":"","type":"tuple"}],"stateMutability":"view","type":"function"}];
+      const FactoryABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"pool","type":"address"},{"indexed":true,"internalType":"address","name":"parent","type":"address"}],"name":"PoolCreated","type":"event"},{"inputs":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"address","name":"parent","type":"address"},{"components":[{"internalType":"uint16","name":"feeBps","type":"uint16"},{"internalType":"uint16","name":"slippageGuardBps","type":"uint16"},{"internalType":"uint16","name":"cooldownBlocks","type":"uint16"},{"internalType":"bool","name":"mevProtection","type":"bool"}],"internalType":"struct Types.Traits","name":"traits","type":"tuple"}],"name":"createPool","outputs":[{"internalType":"address","name":"newPool","type":"address"}],"stateMutability":"nonpayable","type":"function"}];
+      const PoolABI = [{"inputs":[],"name":"numSwaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getAveragePriceImpactBps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getReserves","outputs":[{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalFees0","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalFees1","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"addLiquidity","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+      const MorpheusABI = [
+        {"inputs":[{"internalType":"address","name":"pool","type":"address"},{"internalType":"uint256","name":"gasEfficiency","type":"uint256"},{"internalType":"uint256","name":"profitability","type":"uint256"},{"internalType":"uint256","name":"userSatisfaction","type":"uint256"}],"name":"reportFitness","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"address","name":"parent","type":"address"},{"internalType":"uint256[]","name":"targetTraits","type":"uint256[]"}],"name":"evolveContract","outputs":[{"internalType":"address","name":"child","type":"address"}],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"address","name":"contractAddr","type":"address"},{"internalType":"uint256","name":"targetChainId","type":"uint256"}],"name":"migrateToChain","outputs":[{"internalType":"bytes","name":"dnaBlob","type":"bytes"}],"stateMutability":"nonpayable","type":"function"}
+      ];
+
+      let provider, signer, account, registry, factory, morpheus;
+      let pools = [], descs = {}, selected = null, children = [];
+
+      async function connect() {
+        if (!window.ethereum) return alert('Install MetaMask');
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send('eth_requestAccounts', []);
+        signer = await provider.getSigner();
+        account = await signer.getAddress();
+        document.getElementById('btnConnect').innerText = `Connected: ${account.slice(0,6)}…${account.slice(-4)}`;
+      }
+      document.getElementById('btnConnect').onclick = connect;
+
+      async function load() {
+        const r = document.getElementById('inpRegistry').value.trim();
+        const f = document.getElementById('inpFactory').value.trim();
+        const m = document.getElementById('inpMorpheus').value.trim();
+        if (!r) return alert('Set Registry');
+        registry = new ethers.Contract(r, RegistryABI, provider);
+        factory = f ? new ethers.Contract(f, FactoryABI, signer) : null;
+        morpheus = m ? new ethers.Contract(m, MorpheusABI, signer) : null;
+        pools = await registry.allPools();
+        descs = {};
+        for (const a of pools) {
+          const d = await registry.getPool(a);
+          descs[a] = { token0: d.token0, token1: d.token1, parent: d.parent, generation: Number(d.generation), traits: d.traits };
+        }
+        renderPoolList();
+        drawTree();
+      }
+      document.getElementById('btnLoad').onclick = load;
+
+      function renderPoolList() {
+        const ul = document.getElementById('lstPools'); ul.innerHTML = '';
+        for (const a of pools) {
+          const li = document.createElement('li');
+          const btn = document.createElement('button'); btn.textContent = 'View';
+          btn.onclick = () => select(a);
+          const code = document.createElement('code'); code.textContent = a;
+          const meta = document.createElement('div'); meta.style.fontSize = '12px'; meta.style.color = '#555';
+          meta.textContent = `gen ${descs[a].generation} | parent ${descs[a].parent || '—'} | fee ${descs[a].traits.feeBps} bps`;
+          li.appendChild(btn); li.appendChild(code); li.appendChild(meta);
+          ul.appendChild(li);
+        }
+      }
+
+      async function select(addr) {
+        selected = addr;
+        children = await registry.getChildren(addr);
+        const pool = new ethers.Contract(addr, PoolABI, provider);
+        const [numSwaps, avgImpact, reserves, fees0, fees1] = await Promise.all([
+          pool.numSwaps(), pool.getAveragePriceImpactBps(), pool.getReserves(), pool.totalFees0(), pool.totalFees1()
+        ]);
+        const metrics = `swaps ${numSwaps}, avgImpact ${avgImpact} bps, reserves (${reserves[0]}, ${reserves[1]}), fees (${fees0}, ${fees1})`;
+        document.getElementById('sel').innerHTML = `
+          <div><b>Address</b>: <code>${addr}</code></div>
+          <div><b>Token0</b>: <code>${descs[addr].token0}</code></div>
+          <div><b>Token1</b>: <code>${descs[addr].token1}</code></div>
+          <div><b>Children</b>: ${children.length}</div>
+          <div style="margin-top:6px"><b>Metrics</b>: ${metrics}</div>
+        `;
+        drawTree();
+      }
+
+      async function spawn() {
+        if (!factory || !selected) return;
+        const d = descs[selected];
+        const fee = Math.max(5, Math.min(300, (d.traits.feeBps||0) + (Math.random()<0.5?-5:5)));
+        const tx = await factory.createPool(d.token0, d.token1, selected, { feeBps: fee, slippageGuardBps: d.traits.slippageGuardBps, cooldownBlocks: d.traits.cooldownBlocks, mevProtection: d.traits.mevProtection });
+        const rc = await tx.wait();
+        alert('Spawned child. Tx: '+ rc.hash);
+        await load();
+      }
+      document.getElementById('btnSpawn').onclick = spawn;
+
+      async function add() {
+        if (!selected) return;
+        const pool = new ethers.Contract(selected, PoolABI, signer);
+        const a0 = document.getElementById('amt0').value || '0';
+        const a1 = document.getElementById('amt1').value || '0';
+        const v0 = ethers.parseUnits(a0, 18); const v1 = ethers.parseUnits(a1, 18);
+        await (await pool.addLiquidity(v0, v1)).wait();
+        alert('Added liquidity');
+      }
+      document.getElementById('btnAdd').onclick = add;
+
+      async function report() {
+        if (!morpheus || !selected) return;
+        const gas = Number(document.getElementById('fit_gas').value || '8000');
+        const profit = Number(document.getElementById('fit_profit').value || '7000');
+        const user = Number(document.getElementById('fit_user').value || '7500');
+        await (await morpheus.reportFitness(selected, gas, profit, user)).wait();
+        alert('Fitness reported');
+      }
+      document.getElementById('btnFit').onclick = report;
+
+      async function ga() {
+        if (!morpheus || !selected) return;
+        const tx = await morpheus.evolveContract(selected, []);
+        const rc = await tx.wait();
+        alert('GA evolve. Tx: '+ rc.hash);
+        await load();
+      }
+      document.getElementById('btnGA').onclick = ga;
+
+      async function dna() {
+        if (!morpheus || !selected) return;
+        const chain = Number(document.getElementById('target_chain').value || '84532');
+        const data = await morpheus.migrateToChain(selected, chain);
+        const blob = new Blob([data], {type:'text/plain;charset=utf-8'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `dna_${selected}.hex`; a.click();
+      }
+      document.getElementById('btnDNA').onclick = dna;
+
+      function drawTree() {
+        const svg = d3.select('#tree'); svg.selectAll('*').remove();
+        const width = document.getElementById('tree').clientWidth || 800, height = 420;
+        const nodes = pools.map(id => ({ id, generation: (descs[id]?.generation)||0 }));
+        const links = [];
+        for (const id of pools) { const p = descs[id]?.parent; if (p && p !== '0x0000000000000000000000000000000000000000') links.push({ source: p, target: id }); }
+        const g = svg.append('g'); svg.call(d3.zoom().on('zoom', (e)=> g.attr('transform', e.transform)));
+        const sim = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(links).id(d=>d.id).distance(80))
+          .force('charge', d3.forceManyBody().strength(-160))
+          .force('center', d3.forceCenter(width/2, height/2))
+          .force('y', d3.forceY(d=> 60+80*(d.generation||0)).strength(0.8));
+        const link = g.append('g').attr('stroke','#ccc').selectAll('line').data(links).enter().append('line').attr('stroke-width',1.5);
+        const node = g.append('g').selectAll('circle').data(nodes).enter().append('circle')
+          .attr('r', d=> d.id===selected?9:6).attr('fill', d=> d.id===selected?'#4f46e5':'#16a34a').attr('stroke','#111').attr('stroke-width',1)
+          .style('cursor','pointer').on('click', (_,d)=> select(d.id));
+        const labels = g.append('g').selectAll('text').data(nodes).enter().append('text')
+          .text(d=> `${d.id.slice(0,6)}…${d.id.slice(-4)} (g${d.generation})`).attr('font-size',10).attr('fill','#444');
+        sim.on('tick', ()=>{
+          link.attr('x1', d=> d.source.x).attr('y1', d=> d.source.y).attr('x2', d=> d.target.x).attr('y2', d=> d.target.y);
+          node.attr('cx', d=> d.x).attr('cy', d=> d.y);
+          labels.attr('x', d=> d.x+10).attr('y', d=> d.y+4);
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "name": "morpheus-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "clean": "rimraf dist",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run --network hardhat scripts/deploy.ts",
+    "deploy:testnet": "hardhat run --network amoy scripts/deploy.ts",
+    "deploy:amoy": "hardhat run --network amoy scripts/deploy.ts",
+    "deploy:base": "hardhat run --network baseSepolia scripts/deploy.ts",
+    "deploy:arb": "hardhat run --network arbitrumSepolia scripts/deploy.ts",
+    "simulate": "hardhat run --network hardhat scripts/simulate.ts",
+    "evolve": "hardhat run --network amoy scripts/evolve.ts",
+    "morph": "hardhat run --network amoy scripts/morph.ts",
+    "export:dna": "hardhat run --network amoy scripts/exportDNA.ts",
+    "import:dna:base": "hardhat run --network baseSepolia scripts/importDNA.ts",
+    "import:dna:arb": "hardhat run --network arbitrumSepolia scripts/importDNA.ts",
+    "orchestrate:amoy-base": "hardhat run --network amoy scripts/orchestrateCrossChain.ts -- --src=amoy --tgt=baseSepolia",
+    "orchestrate:amoy-arb": "hardhat run --network amoy scripts/orchestrateCrossChain.ts -- --src=amoy --tgt=arbitrumSepolia",
+    "orchestrate:base-arb": "hardhat run --network baseSepolia scripts/orchestrateCrossChain.ts -- --src=baseSepolia --tgt=arbitrumSepolia",
+    "web:dev": "npm --prefix frontend run dev",
+    "web:build": "npm --prefix frontend run build",
+    "web:preview": "npm --prefix frontend run preview"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.30",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.12.1",
+    "hardhat": "^2.22.7",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "hardhat-gas-reporter": "^1.0.10",
+    "typescript": "^5.5.4"
+  }
+}

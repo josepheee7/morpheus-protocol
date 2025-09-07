@@ -1,0 +1,49 @@
+name: Security
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  slither:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Slither Analysis
+        uses: crytic/slither-action@v0.3.0
+        with:
+          target: .
+          slither-args: "--exclude-informational"
+      - name: Gas Report (optional)
+        if: always()
+        run: |
+          echo "REPORT_GAS=1" >> $GITHUB_ENV
+          npm ci
+          npx hardhat test || true
+
+  mythril:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node and install deps
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: |
+          npm ci
+      - name: Compile (to ensure imports exist in node_modules)
+        run: |
+          npx hardhat compile
+      - name: Mythril Analysis (Docker)
+        run: |
+          docker pull mythril/myth:latest
+          # Analyze all contracts with Solidity 0.8.24; allow imports from repo and node_modules
+          docker run --rm -v "$PWD":/workspace mythril/myth:latest analyze \
+            /workspace/contracts/*.sol \
+            --solv 0.8.24 \
+            --solc-args "--base-path /workspace --include-path /workspace/node_modules --allow-paths /workspace" \
+            --parallel-solving --max-depth 2 || true

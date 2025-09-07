@@ -1,0 +1,9 @@
+[build]
+  command = "npm run web:build"
+  publish = "frontend/dist"
+
+# SPA fallback for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
